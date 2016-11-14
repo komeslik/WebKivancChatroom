@@ -66,6 +66,9 @@
         socketio.on('kicked', function() {
             alert("You've been kicked!");
         });
+        socketio.on('banned', function() {
+            alert("You've been banned!");
+        });
 
         function promptName(str) {
             var newName = prompt(str + "");
@@ -116,6 +119,13 @@
 
         function kick(badUser, roomid) {
             socketio.emit('kick', {
+                userid: badUser,
+                roomid: roomid
+            });
+        }
+
+        function ban(badUser, roomid) {
+            socketio.emit('ban', {
                 userid: badUser,
                 roomid: roomid
             });

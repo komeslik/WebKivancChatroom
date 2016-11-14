@@ -88,7 +88,12 @@ io.sockets.on("connection", function(socket) {
         }
     });
     socket.on('joinRoom', function(data) {
-        if (rooms[data.room].pass != null && data.passGuess != rooms[data.room].pass) {
+        var banned = rooms[data.room].banned.filter(function(val) {
+            return val.userid == data.userid;
+        });
+        if (banned.length > 0) {
+            socket.emit('banned');
+        } else if (rooms[data.room].pass != null && data.passGuess != rooms[data.room].pass) {
             socket.emit('wrongPass');
         } else {
             rooms[roomid].users = rooms[roomid].users.filter(function(val) {
@@ -120,13 +125,26 @@ io.sockets.on("connection", function(socket) {
         rooms[data.roomid].users = rooms[data.roomid].users.filter(function(val) {
             return val.userid != data.userid;
         });
-        clients[data.userid].leave(clients[data.userid].room);``
+        clients[data.userid].leave(clients[data.userid].room);
         clients[data.userid].join("0");
         clients[data.userid].room = 0;
         rooms[0].users.push(clients[data.userid].info);
         clients[data.userid].emit('enterRoom', "Lobby");
         io.sockets.emit('roomList', rooms);
         clients[data.userid].emit('kicked');
+    });
+    socket.on('ban', function(data) {
+        rooms[data.roomid].users = rooms[data.roomid].users.filter(function(val) {
+            return val.userid != data.userid;
+        });
+        clients[data.userid].leave(clients[data.userid].room);
+        clients[data.userid].join("0");
+        clients[data.userid].room = 0;
+        rooms[0].users.push(clients[data.userid].info);
+        clients[data.userid].emit('enterRoom', "Lobby");
+        rooms[data.roomid].banned.push(clients[data.userid].info);
+        io.sockets.emit('roomList', rooms);
+        clients[data.userid].emit('banned');
     });
     socket.on('message_to_server', function(data) {
         // This callback runs when the server receives a new message from the client.

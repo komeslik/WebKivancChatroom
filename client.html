@@ -7,6 +7,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script type="text/javascript">
         var user = null;
+        var room = "Lobby";
         var socketio = io.connect();
         socketio.on('connect', function() {
             socketio.emit('newUser', promptName("Please enter a Username"));
@@ -19,6 +20,7 @@
         });
         socketio.on('roomList', function(data) {
             document.getElementById('roomList').innerHTML = "Rooms:<br>";
+            var list = "Users<br>";
             for (i = 0; i < data.length; ++i) {
                 if (!(data[i].isMessage == true && !(data[i].admin == user || data[i].receiver == user))) {
                     var roomObj = document.createElement('div');
@@ -26,18 +28,22 @@
                     roomObj.setAttribute("onClick", "joinRoom(" + i + ")");
                     document.getElementById('roomList').appendChild(roomObj);
                 }
-            }
-        });
-        socketio.on('userList', function(data) {
-            var list = "<br>Users:<br>";
-            for (i = 0; i < data.length; ++i) {
-                if (data[i] == user) {
-                    list += "You(" + user + ")<br>";
-                } else {
-                    list += data[i] + "<br>";
+                if (data[i].name == room) {
+                    for (j = 0; j < data[i].users.length; ++j) {
+                        if (data[i].users[j] == user) {
+                            list += "You(" + user + ")<br>";
+                        } else if (data[i].users[j] != null) {
+                            list += data[i].users[j] + "<br>";
+                        }
+                    }
                 }
             }
             document.getElementById('userList').innerHTML = list;
+        });
+        socketio.on('enterRoom', function(data) {
+            room = data;
+            document.getElementById('roomTitle').innerHTML = data;
+            document.getElementById('chatlog').innerHTML = "";
         });
         socketio.on("message_to_client", function(data) {
             //Append an HR thematic break and the escaped HTML of the new message
@@ -53,12 +59,14 @@
                 return newName;
             }
         }
-        function joinRoom(roomid){
-          socketio.emit('joinRoom', {
-            room: roomid,
-            user: user
-          });
+
+        function joinRoom(roomid) {
+            socketio.emit('joinRoom', {
+                room: roomid,
+                user: user
+            });
         }
+
         function addRoom() {
             var roomName = document.getElementById('roomName').value;
             var pass = document.getElementById('pass').value;
@@ -76,6 +84,7 @@
             room.receiver = null;
             socketio.emit('newRoom', room);
         }
+
         function sendMessage() {
             var msg = document.getElementById("message_input").value;
             socketio.emit("message_to_server", {
@@ -92,6 +101,7 @@
         <input type=password id="pass" />
         <button onclick="addRoom()">Create Room</button>
     </div>
+    <div id="roomTitle"></div>
     <input type=text id="message_input" />
     <button onclick="sendMessage()">Send</button>
     <div id="chatlog"></div>

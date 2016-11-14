@@ -7,7 +7,7 @@ var http = require("http"),
     fs = require("fs");
 
 var users = [];
-//var clients = [];
+var roomid = 0;
 var rooms = [{
     name: 'Lobby',
     pass: null,
@@ -65,7 +65,7 @@ io.sockets.on("connection", function(socket) {
     console.log("connect");
     socket.on('newUser', function(data) {
         names = users.filter(function(val) {
-            return val.user == data;
+            return val == data;
         });
         if (names.length > 0) {
             socket.emit('userTaken', data);
@@ -74,20 +74,32 @@ io.sockets.on("connection", function(socket) {
             //clients.push(socket);
             socket.emit('userSuccess', data);
             socket.user = data;
-            io.sockets.emit('userList', users);
+            //io.sockets.emit('userList', users);
             rooms[0].users.push(data);
             socket.join("0");
             socket.room = 0;
-            socket.emit('roomList', rooms);
+            io.sockets.emit('roomList', rooms);
         }
     });
-		socket.on('joinRoom', function(data){
-			socket.leave(socket.room);
-			socket.join(data.room + "");
-			socket.room = data.room;
-			rooms[data.room].users.push(data.user);
-			io.sockets.emit('roomList', rooms);
-		});
+    socket.on('joinRoom', function(data) {
+        for (i = 0; i < rooms[roomid].users.length; ++i) {
+            if (rooms[roomid].users[i] == data.user) {
+                rooms[roomid].users[i] = null;
+            }
+        }
+        socket.leave(socket.room);
+        socket.join(data.room + "");
+        roomid = data.room;
+        socket.room = data.room;
+        names = rooms[data.room].users.filter(function(val) {
+            return val == data.user;
+        });
+        if (names.length == 0) {
+            rooms[data.room].users.push(data.user);
+        }
+        socket.emit('enterRoom', rooms[data.room].name);
+        io.sockets.emit('roomList', rooms);
+    });
     socket.on('newRoom', function(data) {
         rooms.push(data);
         io.sockets.emit('roomList', rooms);

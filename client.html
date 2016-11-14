@@ -2,6 +2,8 @@
 <html>
 
 <head>
+    <meta charset="utf-8">
+    <title>WebKivanc</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -22,7 +24,7 @@
         });
         socketio.on('roomList', function(data) {
             document.getElementById('roomList').innerHTML = "Rooms:<br>";
-            var list = "Users<br>";
+            var list = "Users:<br>";
             for (i = 0; i < data.length; ++i) {
                 if (!(data[i].isMessage == true && !(data[i].admin == user || data[i].receiver == user))) {
                     var roomObj = document.createElement('div');
@@ -163,11 +165,14 @@
 <body>
     <div id="roomList"></div>
     <div id="addRoom">
+        <a>Room Name:</a>
         <input type=text id="roomName" />
+        <a>Password (optional):</a>
         <input type=password id="pass" />
         <button onclick="addRoom()">Create Room</button>
     </div>
     <div id="roomTitle">Current Room: Lobby</div>
+    <a>Message:</a>
     <input type=text id="message_input" />
     <button onclick="sendMessage()">Send</button>
     <div id="chatlog"></div>

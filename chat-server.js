@@ -128,7 +128,7 @@ io.sockets.on("connection", function(socket) {
         clients[data.userid].leave(clients[data.userid].room);
         clients[data.userid].join("0");
         clients[data.userid].room = 0;
-        rooms[0].users.push(clients[data.userid].info);
+        //rooms[0].users.push(clients[data.userid].info);
         clients[data.userid].emit('enterRoom', "Lobby");
         io.sockets.emit('roomList', rooms);
         clients[data.userid].emit('kicked');
@@ -140,7 +140,7 @@ io.sockets.on("connection", function(socket) {
         clients[data.userid].leave(clients[data.userid].room);
         clients[data.userid].join("0");
         clients[data.userid].room = 0;
-        rooms[0].users.push(clients[data.userid].info);
+        //rooms[0].users.push(clients[data.userid].info);
         clients[data.userid].emit('enterRoom', "Lobby");
         rooms[data.roomid].banned.push(clients[data.userid].info);
         io.sockets.emit('roomList', rooms);
@@ -152,7 +152,8 @@ io.sockets.on("connection", function(socket) {
         console.log("message: " + data["message"]); // log it to the Node.JS output
         io.sockets.emit("message_to_client", {
                 poster: socket.user + "",
-                message: data["message"]
+                message: data["message"],
+								room: data.room
             }) // broadcast the message to other users
     });
 });

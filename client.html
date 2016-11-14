@@ -39,7 +39,7 @@
                         if (data[i].users[j].user == user) {
                             list += "You(" + user + ")<br>";
                         } else if (data[i].users[j].user != null) {
-                            list += data[i].users[j].user + "";
+                            list += "<span onClick='messageTo(\"" + data[i].users[j].user + "\")'>" + data[i].users[j].user + "</span>";
                             if (data[i].admin == user) {
                                 list += "<button onClick='kick(" + data[i].users[j].userid + ", " + i + ")'>Kick</button><button onClick='ban(" + data[i].users[j].userid + ", " + i + ")'>Ban</button><br>";
                             }
@@ -55,13 +55,15 @@
         });
         socketio.on('enterRoom', function(data) {
             room = data;
-            document.getElementById('roomTitle').innerHTML = data;
+            document.getElementById('roomTitle').innerHTML = "Current Room: " + data;
             document.getElementById('chatlog').innerHTML = "";
         });
         socketio.on("message_to_client", function(data) {
             //Append an HR thematic break and the escaped HTML of the new message
-            document.getElementById("chatlog").appendChild(document.createElement("hr"));
-            document.getElementById("chatlog").appendChild(document.createTextNode(data['poster'] + ": " + data['message']));
+            if (data.room == room) {
+                document.getElementById("chatlog").appendChild(document.createElement("hr"));
+                document.getElementById("chatlog").appendChild(document.createTextNode(data['poster'] + ": " + data['message']));
+            }
         });
         socketio.on('kicked', function() {
             alert("You've been kicked!");
@@ -113,8 +115,21 @@
         function sendMessage() {
             var msg = document.getElementById("message_input").value;
             socketio.emit("message_to_server", {
-                message: msg
+                message: msg,
+                room: room
             });
+        }
+
+        function messageTo(receiver) {
+            var room = {};
+            room.name = "Private Chat From " + user + " to " + receiver;
+            room.pass = null;
+            room.users = [];
+            room.admin = user;
+            room.banned = [];
+            room.isMessage = true;
+            room.receiver = receiver;
+            socketio.emit('newRoom', room);
         }
 
         function kick(badUser, roomid) {
@@ -140,7 +155,7 @@
         <input type=password id="pass" />
         <button onclick="addRoom()">Create Room</button>
     </div>
-    <div id="roomTitle"></div>
+    <div id="roomTitle">Current Room: Lobby</div>
     <input type=text id="message_input" />
     <button onclick="sendMessage()">Send</button>
     <div id="chatlog"></div>

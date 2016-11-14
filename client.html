@@ -2,15 +2,80 @@
 <html>
 
 <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script type="text/javascript">
+        var user = null;
         var socketio = io.connect();
+        socketio.on('connect', function() {
+            socketio.emit('newUser', promptName("Please enter a Username"));
+        });
+        socketio.on('userTaken', function(data) {
+            socketio.emit('newUser', promptName(data + " is taken, please try again"))
+        });
+        socketio.on('userSuccess', function(data) {
+            user = data;
+        });
+        socketio.on('roomList', function(data) {
+            document.getElementById('roomList').innerHTML = "Rooms:<br>";
+            for (i = 0; i < data.length; ++i) {
+                if (!(data[i].isMessage == true && !(data[i].admin == user || data[i].receiver == user))) {
+                    var roomObj = document.createElement('div');
+                    roomObj.innerHTML = data[i].name + "<br>";
+                    roomObj.setAttribute("onClick", "joinRoom(" + i + ")");
+                    document.getElementById('roomList').appendChild(roomObj);
+                }
+            }
+        });
+        socketio.on('userList', function(data) {
+            var list = "<br>Users:<br>";
+            for (i = 0; i < data.length; ++i) {
+                if (data[i] == user) {
+                    list += "You(" + user + ")<br>";
+                } else {
+                    list += data[i] + "<br>";
+                }
+            }
+            document.getElementById('userList').innerHTML = list;
+        });
         socketio.on("message_to_client", function(data) {
             //Append an HR thematic break and the escaped HTML of the new message
             document.getElementById("chatlog").appendChild(document.createElement("hr"));
-            document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+            document.getElementById("chatlog").appendChild(document.createTextNode(data['poster'] + ": " + data['message']));
         });
 
+        function promptName(str) {
+            var newName = prompt(str + "");
+            if (newName == null || newName == "" || newName == " ") {
+                return promptName("Invalid username! Please enter a username");
+            } else {
+                return newName;
+            }
+        }
+        function joinRoom(roomid){
+          socketio.emit('joinRoom', {
+            room: roomid,
+            user: user
+          });
+        }
+        function addRoom() {
+            var roomName = document.getElementById('roomName').value;
+            var pass = document.getElementById('pass').value;
+            var room = {};
+            room.name = roomName;
+            if (pass != null && pass != "") {
+                room.pass = pass;
+            } else {
+                room.pass = null;
+            }
+            room.users = [];
+            room.admin = user;
+            room.banned = [];
+            room.isMessage = false;
+            room.receiver = null;
+            socketio.emit('newRoom', room);
+        }
         function sendMessage() {
             var msg = document.getElementById("message_input").value;
             socketio.emit("message_to_server", {
@@ -21,9 +86,16 @@
 </head>
 
 <body>
+    <div id="roomList"></div>
+    <div id="addRoom">
+        <input type=text id="roomName" />
+        <input type=password id="pass" />
+        <button onclick="addRoom()">Create Room</button>
+    </div>
     <input type=text id="message_input" />
-    <button onclick="sendMessage()">send</button>
+    <button onclick="sendMessage()">Send</button>
     <div id="chatlog"></div>
+    <div id="userList"></div>
 </body>
 
 </html>

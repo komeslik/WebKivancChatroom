@@ -6,6 +6,18 @@ var http = require("http"),
     mime = require("mime"),
     fs = require("fs");
 
+var users = [];
+//var clients = [];
+var rooms = [{
+    name: 'Lobby',
+    pass: null,
+    users: [],
+    admin: null,
+    banned: [],
+    isMessage: false,
+    receiver: null
+}];
+
 // Listen for HTTP connections.  This is essentially a miniature static file server that only serves our one file, client.html:
 var app = http.createServer(function(req, resp) {
     // This callback runs when a new connection is made to our HTTP server.
@@ -50,12 +62,42 @@ app.listen(3456);
 var io = socketio.listen(app);
 io.sockets.on("connection", function(socket) {
     // This callback runs when a new Socket.IO connection is established.
-
+    console.log("connect");
+    socket.on('newUser', function(data) {
+        names = users.filter(function(val) {
+            return val.user == data;
+        });
+        if (names.length > 0) {
+            socket.emit('userTaken', data);
+        } else {
+            users.push(data);
+            //clients.push(socket);
+            socket.emit('userSuccess', data);
+            socket.user = data;
+            io.sockets.emit('userList', users);
+            rooms[0].users.push(data);
+            socket.join("0");
+            socket.room = 0;
+            socket.emit('roomList', rooms);
+        }
+    });
+		socket.on('joinRoom', function(data){
+			socket.leave(socket.room);
+			socket.join(data.room + "");
+			socket.room = data.room;
+			rooms[data.room].users.push(data.user);
+			io.sockets.emit('roomList', rooms);
+		});
+    socket.on('newRoom', function(data) {
+        rooms.push(data);
+        io.sockets.emit('roomList', rooms);
+    });
     socket.on('message_to_server', function(data) {
         // This callback runs when the server receives a new message from the client.
 
         console.log("message: " + data["message"]); // log it to the Node.JS output
         io.sockets.emit("message_to_client", {
+                poster: socket.user + "",
                 message: data["message"]
             }) // broadcast the message to other users
     });

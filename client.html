@@ -41,7 +41,8 @@
                         } else if (data[i].users[j].user != null) {
                             list += "<span onClick='messageTo(\"" + data[i].users[j].user + "\")'>" + data[i].users[j].user + "</span>";
                             if (data[i].admin == user) {
-                                list += "<button onClick='kick(" + data[i].users[j].userid + ", " + i + ")'>Kick</button><button onClick='ban(" + data[i].users[j].userid + ", " + i + ")'>Ban</button><br>";
+                                list += "<button onClick='kick(" + data[i].users[j].userid + ", " + i + ")'>Kick</button><button onClick='ban(" + data[i].users[j].userid + ", " + i + ")'>Ban</button><button onClick='newAdmin(\"" + data[i].users[
+                                    j].user + "\", " + data[i].users[j].userid + ", " + i + ")'>Make Admin</button><br>";
                             }
                             list += "<br>";
                         }
@@ -70,6 +71,9 @@
         });
         socketio.on('banned', function() {
             alert("You've been banned!");
+        });
+        socketio.on('adminAlert', function() {
+            alert("You are now the admin!");
         });
 
         function promptName(str) {
@@ -142,6 +146,14 @@
         function ban(badUser, roomid) {
             socketio.emit('ban', {
                 userid: badUser,
+                roomid: roomid
+            });
+        }
+
+        function newAdmin(admin, adminid, roomid) {
+            socketio.emit('newAdmin', {
+                admin: admin,
+                adminid: adminid,
                 roomid: roomid
             });
         }

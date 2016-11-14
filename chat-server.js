@@ -146,6 +146,11 @@ io.sockets.on("connection", function(socket) {
         io.sockets.emit('roomList', rooms);
         clients[data.userid].emit('banned');
     });
+    socket.on('newAdmin', function(data) {
+        rooms[data.roomid].admin = data.admin;
+        io.sockets.emit('roomList', rooms);
+				clients[data.adminid].emit('adminAlert');
+    });
     socket.on('message_to_server', function(data) {
         // This callback runs when the server receives a new message from the client.
 
@@ -153,7 +158,14 @@ io.sockets.on("connection", function(socket) {
         io.sockets.emit("message_to_client", {
                 poster: socket.user + "",
                 message: data["message"],
-								room: data.room
+                room: data.room
             }) // broadcast the message to other users
+    });
+    socket.on('disconnect', function() {
+        rooms[socket.room].users = rooms[socket.room].users.filter(function(val) {
+            return val.userid != socket.userid;
+        });
+        socket.leave(socket.room);
+        io.sockets.emit('roomList', rooms);
     });
 });

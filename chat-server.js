@@ -7,6 +7,7 @@ var http = require("http"),
     fs = require("fs");
 
 var users = [];
+var clients = [];
 var roomid = 0;
 var rooms = [{
     name: 'Lobby',
@@ -64,45 +65,68 @@ io.sockets.on("connection", function(socket) {
     // This callback runs when a new Socket.IO connection is established.
     console.log("connect");
     socket.on('newUser', function(data) {
-        names = users.filter(function(val) {
-            return val == data;
+        userInfo = {
+            user: data,
+            userid: users.length
+        };
+        var names = users.filter(function(val) {
+            return val.user == data;
         });
         if (names.length > 0) {
             socket.emit('userTaken', data);
         } else {
-            users.push(data);
-            //clients.push(socket);
-            socket.emit('userSuccess', data);
+            users.push(userInfo);
             socket.user = data;
-            //io.sockets.emit('userList', users);
-            rooms[0].users.push(data);
+            socket.userid = userInfo.userid;
+            socket.info = userInfo;
+            rooms[0].users.push(userInfo);
             socket.join("0");
             socket.room = 0;
+            clients.push(socket);
+            socket.emit('userSuccess', userInfo);
             io.sockets.emit('roomList', rooms);
         }
     });
     socket.on('joinRoom', function(data) {
-        for (i = 0; i < rooms[roomid].users.length; ++i) {
-            if (rooms[roomid].users[i] == data.user) {
-                rooms[roomid].users[i] = null;
+        if (rooms[data.room].pass != null && data.passGuess != rooms[data.room].pass) {
+            socket.emit('wrongPass');
+        } else {
+            rooms[roomid].users = rooms[roomid].users.filter(function(val) {
+                return val.user != data.user;
+            });
+            socket.leave(socket.room);
+            socket.join(data.room + "");
+            roomid = data.room;
+            socket.room = data.room;
+            var names = rooms[data.room].users.filter(function(val) {
+                return val.user == data.user;
+            });
+            if (names.length == 0) {
+                userInfo = {
+                    user: data.user,
+                    userid: data.userid
+                };
+                rooms[data.room].users.push(userInfo);
             }
+            socket.emit('enterRoom', rooms[data.room].name);
+            io.sockets.emit('roomList', rooms);
         }
-        socket.leave(socket.room);
-        socket.join(data.room + "");
-        roomid = data.room;
-        socket.room = data.room;
-        names = rooms[data.room].users.filter(function(val) {
-            return val == data.user;
-        });
-        if (names.length == 0) {
-            rooms[data.room].users.push(data.user);
-        }
-        socket.emit('enterRoom', rooms[data.room].name);
-        io.sockets.emit('roomList', rooms);
     });
     socket.on('newRoom', function(data) {
         rooms.push(data);
         io.sockets.emit('roomList', rooms);
+    });
+    socket.on('kick', function(data) {
+        rooms[data.roomid].users = rooms[data.roomid].users.filter(function(val) {
+            return val.userid != data.userid;
+        });
+        clients[data.userid].leave(clients[data.userid].room);``
+        clients[data.userid].join("0");
+        clients[data.userid].room = 0;
+        rooms[0].users.push(clients[data.userid].info);
+        clients[data.userid].emit('enterRoom', "Lobby");
+        io.sockets.emit('roomList', rooms);
+        clients[data.userid].emit('kicked');
     });
     socket.on('message_to_server', function(data) {
         // This callback runs when the server receives a new message from the client.

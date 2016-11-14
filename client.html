@@ -7,6 +7,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script type="text/javascript">
         var user = null;
+        var userid = null;
         var room = "Lobby";
         var socketio = io.connect();
         socketio.on('connect', function() {
@@ -16,7 +17,8 @@
             socketio.emit('newUser', promptName(data + " is taken, please try again"))
         });
         socketio.on('userSuccess', function(data) {
-            user = data;
+            user = data.user;
+            userid = data.userid
         });
         socketio.on('roomList', function(data) {
             document.getElementById('roomList').innerHTML = "Rooms:<br>";
@@ -25,20 +27,31 @@
                 if (!(data[i].isMessage == true && !(data[i].admin == user || data[i].receiver == user))) {
                     var roomObj = document.createElement('div');
                     roomObj.innerHTML = data[i].name + "<br>";
-                    roomObj.setAttribute("onClick", "joinRoom(" + i + ")");
+                    if (data[i].pass != null) {
+                        roomObj.setAttribute("onClick", "joinRoom(" + i + ", true)");
+                    } else {
+                        roomObj.setAttribute("onClick", "joinRoom(" + i + ", false)");
+                    }
                     document.getElementById('roomList').appendChild(roomObj);
                 }
                 if (data[i].name == room) {
                     for (j = 0; j < data[i].users.length; ++j) {
-                        if (data[i].users[j] == user) {
+                        if (data[i].users[j].user == user) {
                             list += "You(" + user + ")<br>";
-                        } else if (data[i].users[j] != null) {
-                            list += data[i].users[j] + "<br>";
+                        } else if (data[i].users[j].user != null) {
+                            list += data[i].users[j].user + "";
+                            if (data[i].admin == user) {
+                                list += "<button onClick='kick(" + data[i].users[j].userid + ", " + i + ")'>Kick</button><button onClick='ban(" + data[i].users[j].userid + ", " + i + ")'>Ban</button><br>";
+                            }
+                            list += "<br>";
                         }
                     }
                 }
             }
             document.getElementById('userList').innerHTML = list;
+        });
+        socketio.on('wrongPass', function() {
+            alert("Wrong Password");
         });
         socketio.on('enterRoom', function(data) {
             room = data;
@@ -50,6 +63,9 @@
             document.getElementById("chatlog").appendChild(document.createElement("hr"));
             document.getElementById("chatlog").appendChild(document.createTextNode(data['poster'] + ": " + data['message']));
         });
+        socketio.on('kicked', function() {
+            alert("You've been kicked!");
+        });
 
         function promptName(str) {
             var newName = prompt(str + "");
@@ -60,10 +76,16 @@
             }
         }
 
-        function joinRoom(roomid) {
+        function joinRoom(roomid, hasPass) {
+            var passGuess = null;
+            if (hasPass) {
+                passGuess = prompt("What is the password?")
+            }
             socketio.emit('joinRoom', {
                 room: roomid,
-                user: user
+                user: user,
+                userid: userid,
+                passGuess: passGuess
             });
         }
 
@@ -89,6 +111,13 @@
             var msg = document.getElementById("message_input").value;
             socketio.emit("message_to_server", {
                 message: msg
+            });
+        }
+
+        function kick(badUser, roomid) {
+            socketio.emit('kick', {
+                userid: badUser,
+                roomid: roomid
             });
         }
     </script>

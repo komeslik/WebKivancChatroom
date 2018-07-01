@@ -1,6 +1,4 @@
 # WebKivanc Chatroom
-### Link to our website
-<http://ec2-54-165-229-228.compute-1.amazonaws.com:3456/client.html>
 
 ### Basic Instructions:
 - After you log in, you can either send messages in Lobby (the generic group), or choose to create your own group.
